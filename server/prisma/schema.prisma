@@ -1,0 +1,84 @@
+generator client {
+  provider = "prisma-client-js"
+}
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+model Store {
+  id              String         @id @default(cuid())
+  name            String
+  regularHolidays Int[]          @default([])
+  createdAt       DateTime       @default(now())
+  staff           Staff[]
+  shifts          Shift[]
+  wishDeadlines   WishDeadline[]
+}
+model Staff {
+  id                   String   @id @default(cuid())
+  storeId              String
+  name                 String
+  role                 String   @default("スタッフ")
+  type                 String   @default("part-time")
+  wage                 Int      @default(1100)
+  fixedOvertimeHours   Int      @default(20)
+  standardMonthlyHours Int      @default(160)
+  pin                  String
+  isAdmin              Boolean  @default(false)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  store   Store   @relation(fields: [storeId], references: [id])
+  shifts  Shift[]
+  punches Punch[]
+  wishes  Wish[]
+  @@index([storeId])
+}
+model Shift {
+  id        String   @id @default(cuid())
+  storeId   String
+  staffId   String
+  date      String
+  type      String   @default("off")
+  start     String   @default("")
+  end       String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store Store @relation(fields: [storeId], references: [id])
+  staff Staff @relation(fields: [staffId], references: [id])
+  @@unique([staffId, date])
+  @@index([storeId, date])
+}
+model Punch {
+  id        String   @id @default(cuid())
+  staffId   String
+  date      String
+  type      String
+  time      String
+  lat       Float?
+  lng       Float?
+  createdAt DateTime @default(now())
+  staff Staff @relation(fields: [staffId], references: [id])
+  @@index([staffId, date])
+}
+model Wish {
+  id        String   @id @default(cuid())
+  staffId   String
+  date      String
+  status    String   @default("none")
+  start     String   @default("18:00")
+  end       String   @default("24:00")
+  note      String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  staff Staff @relation(fields: [staffId], references: [id])
+  @@unique([staffId, date])
+  @@index([staffId])
+}
+model WishDeadline {
+  id          String   @id @default(cuid())
+  storeId     String
+  deadline    String
+  targetMonth String
+  createdAt   DateTime @default(now())
+  store Store @relation(fields: [storeId], references: [id])
+}
