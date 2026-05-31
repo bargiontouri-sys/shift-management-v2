@@ -1,5 +1,5 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
-import { Clock, Calendar, Send, User, Settings, Users, BarChart3, LogOut } from 'lucide-react'
+import { Clock, Calendar, Send, User, Settings, Users, BarChart3, LogOut, ClipboardList } from 'lucide-react'
 import { useAuth } from '../lib/store'
 import { nameColor } from '../lib/utils'
 import toast from 'react-hot-toast'
@@ -14,6 +14,7 @@ export default function Layout() {
     { to:'/wish', icon:Send, label:'希望' },
     { to:'/mypage', icon:User, label:'マイページ' },
     ...(staff.isAdmin ? [
+      { to:'/admin/punch', icon:ClipboardList, label:'退勤管理' },
       { to:'/admin/shift', icon:Settings, label:'シフト管理' },
       { to:'/admin/staff', icon:Users, label:'スタッフ' },
       { to:'/admin/stats', icon:BarChart3, label:'集計' },
@@ -37,7 +38,6 @@ export default function Layout() {
           </button>
         </div>
       </header>
-
       <nav style={{ background:'var(--bg)', borderBottom:'1px solid var(--bd)', overflowX:'auto', position:'sticky', top:57, zIndex:90, scrollbarWidth:'none' }}>
         <div style={{ display:'flex', padding:'8px 12px', gap:4, minWidth:'max-content' }}>
           {items.map(({ to, icon:Icon, label, end }) => (
@@ -53,7 +53,6 @@ export default function Layout() {
           ))}
         </div>
       </nav>
-
       <main style={{ flex:1, padding:'20px 16px', maxWidth:920, width:'100%', margin:'0 auto', paddingBottom:'max(env(safe-area-inset-bottom,0px),48px)', boxSizing:'border-box' }}>
         <Outlet/>
       </main>

@@ -10,6 +10,7 @@ import MyPage from './pages/MyPage'
 import AdminShift from './pages/AdminShift'
 import AdminStaff from './pages/AdminStaff'
 import AdminStats from './pages/AdminStats'
+import AdminPunch from './pages/AdminPunch'
 
 function Guard({ children, admin=false }:{ children:React.ReactNode; admin?:boolean }) {
   const { token, staff } = useAuth()
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="admin/shift" element={<Guard admin><AdminShift/></Guard>}/>
           <Route path="admin/staff" element={<Guard admin><AdminStaff/></Guard>}/>
           <Route path="admin/stats" element={<Guard admin><AdminStats/></Guard>}/>
+          <Route path="admin/punch" element={<Guard admin><AdminPunch/></Guard>}/>
         </Route>
         <Route path="*" element={<Navigate to="/" replace/>}/>
       </Routes>

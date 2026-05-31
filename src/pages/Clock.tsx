@@ -111,7 +111,7 @@ export default function Clock() {
 
       {punches.length>0&&(
         <div className="card">
-          <p style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:12 }}>本日の打刻履歴</p>
+          <p style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:12 }}>本日の自分の打刻</p>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {punches.map((p:any)=>(
               <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
