@@ -21,37 +21,40 @@ export default function Layout() {
   ]
   return (
     <div style={{ display:'flex', flexDirection:'column', minHeight:'100dvh' }}>
-      <header style={{ background:'var(--bg)', borderBottom:'1px solid var(--bd)', padding:'10px 16px', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100 }}>
+      <header style={{ background:'var(--bg)', borderBottom:'1px solid var(--bd)', padding:'10px 16px', paddingTop:'max(env(safe-area-inset-top,0px),10px)', display:'flex', alignItems:'center', justifyContent:'space-between', position:'sticky', top:0, zIndex:100 }}>
         <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-          <div style={{ width:32, height:32, background:nameColor(staff.name), borderRadius:'4px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:900, color:'#fff', flexShrink:0 }}>{staff.name[0]}</div>
+          <div style={{ width:36, height:36, background:nameColor(staff.name), borderRadius:'4px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:15, fontWeight:900, color:'#fff', flexShrink:0 }}>{staff.name[0]}</div>
           <div>
-            <div style={{ fontWeight:900, fontSize:13, lineHeight:1.2 }}>{staff.name}</div>
-            <div style={{ fontSize:8, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em' }}>{staff.store?.name||'BarShift Pro'}</div>
+            <div style={{ fontWeight:900, fontSize:14, lineHeight:1.2 }}>{staff.name}</div>
+            <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em' }}>{staff.store?.name||'BarShift Pro'}</div>
           </div>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          {staff.isAdmin && <span className="tag tag-adm">Admin</span>}
-          <button onClick={()=>{ logout(); nav('/login'); toast.success('ログアウトしました') }} style={{ width:32, height:32, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--tx2)', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'var(--r)' }}>
-            <LogOut size={14}/>
+          {staff.isAdmin&&<span className="tag tag-adm">Admin</span>}
+          <button onClick={()=>{ logout(); nav('/login'); toast.success('ログアウトしました') }}
+            style={{ width:38, height:38, background:'var(--bg3)', border:'1px solid var(--bd)', color:'var(--tx2)', display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'var(--r)' }}>
+            <LogOut size={16}/>
           </button>
         </div>
       </header>
-      <nav style={{ background:'var(--bg)', borderBottom:'1px solid var(--bd)', overflowX:'auto', position:'sticky', top:53, zIndex:90, scrollbarWidth:'none' }}>
+
+      <nav style={{ background:'var(--bg)', borderBottom:'1px solid var(--bd)', overflowX:'auto', position:'sticky', top:57, zIndex:90, scrollbarWidth:'none' }}>
         <div style={{ display:'flex', padding:'8px 12px', gap:4, minWidth:'max-content' }}>
           {items.map(({ to, icon:Icon, label, end }) => (
             <NavLink key={to} to={to} end={end} style={({ isActive }) => ({
-              display:'flex', alignItems:'center', gap:5, padding:'6px 11px',
-              fontSize:10, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.1em',
+              display:'flex', alignItems:'center', gap:6, padding:'9px 14px',
+              fontSize:11, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.1em',
               borderRadius:'var(--r)', whiteSpace:'nowrap', transition:'all 0.15s',
               background: isActive ? 'var(--tx)' : 'transparent',
               color: isActive ? 'var(--bg)' : 'var(--tx3)',
             })}>
-              <Icon size={11}/>{label}
+              <Icon size={13}/>{label}
             </NavLink>
           ))}
         </div>
       </nav>
-      <main style={{ flex:1, padding:'18px 16px', maxWidth:920, width:'100%', margin:'0 auto', paddingBottom:48 }}>
+
+      <main style={{ flex:1, padding:'20px 16px', maxWidth:920, width:'100%', margin:'0 auto', paddingBottom:'max(env(safe-area-inset-bottom,0px),48px)', boxSizing:'border-box' }}>
         <Outlet/>
       </main>
     </div>
