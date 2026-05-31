@@ -79,6 +79,8 @@ model WishDeadline {
   storeId     String
   deadline    String
   targetMonth String
+  periodStart String   @default("")
+  periodEnd   String   @default("")
   createdAt   DateTime @default(now())
   store Store @relation(fields: [storeId], references: [id])
 }

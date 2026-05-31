@@ -5,41 +5,58 @@ import { WEEKDAYS, HOLIDAYS, TIME_OPTS, nameColor, dateDk, todayDk } from '../li
 import { api } from '../lib/api'
 
 export default function AdminShift() {
-  const [vd,setVd]=useState(new Date())
-  const [staff,setStaff]=useState<any[]>([])
-  const [shifts,setShifts]=useState<any[]>([])
-  const [wishes,setWishes]=useState<any[]>([])
-  const [selDay,setSelDay]=useState<string|null>(null)
-  const [deadline,setDeadline]=useState('')
-  const y=vd.getFullYear(),m=vd.getMonth()
+  const [vd, setVd] = useState(new Date())
+  const [staff, setStaff] = useState<any[]>([])
+  const [shifts, setShifts] = useState<any[]>([])
+  const [wishes, setWishes] = useState<any[]>([])
+  const [selDay, setSelDay] = useState<string|null>(null)
+  const [deadline, setDeadline] = useState('')
+  const [periodStart, setPeriodStart] = useState('')
+  const [periodEnd, setPeriodEnd] = useState('')
+  const y=vd.getFullYear(), m=vd.getMonth()
   const last=new Date(y,m+1,0).getDate()
   const days=Array.from({length:last},(_,i)=>new Date(y,m,i+1))
   const today=todayDk()
   const ym=`${y}-${String(m+1).padStart(2,'0')}`
 
   useEffect(()=>{load()},[y,m])
+
   const load=async()=>{
     const from=`${ym}-01`,to=`${ym}-${String(last).padStart(2,'0')}`
-    const [s,sh,w]=await Promise.all([
+    const [s,sh,w,dl]=await Promise.all([
       api.get('/api/staff').catch(()=>({data:[]})),
       api.get(`/api/shifts?from=${from}&to=${to}`).catch(()=>({data:[]})),
       api.get(`/api/wishes?month=${ym}`).catch(()=>({data:[]})),
+      api.get('/api/wishes/deadline').catch(()=>({data:null})),
     ])
-    setStaff(s.data);setShifts(sh.data);setWishes(w.data)
+    setStaff(s.data); setShifts(sh.data); setWishes(w.data)
+    if (dl.data) {
+      setDeadline(dl.data.deadline || '')
+      setPeriodStart(dl.data.periodStart || '')
+      setPeriodEnd(dl.data.periodEnd || '')
+    }
   }
+
   const gs=(sid:string,d:string)=>shifts.find(s=>s.staffId===sid&&s.date===d)
   const gw=(sid:string,d:string)=>wishes.find(w=>w.staffId===sid&&w.date===d)
+
   const upd=async(staffId:string,date:string,type:string,start='',end='')=>{
-    try{const{data}=await api.put('/api/shifts',{staffId,date,type,start,end});setShifts(p=>{const i=p.findIndex(s=>s.staffId===staffId&&s.date===date);if(i>=0){const n=[...p];n[i]=data;return n}return[...p,data]})}
-    catch{toast.error('更新に失敗しました')}
+    try{
+      const{data}=await api.put('/api/shifts',{staffId,date,type,start,end})
+      setShifts(p=>{const i=p.findIndex(s=>s.staffId===staffId&&s.date===date);if(i>=0){const n=[...p];n[i]=data;return n}return[...p,data]})
+    }catch{toast.error('更新に失敗しました')}
   }
+
   const reflect=async(date:string)=>{
     try{await api.post('/api/shifts/reflect-wishes',{date});await load();toast.success('希望を反映しました')}
     catch{toast.error('反映に失敗しました')}
   }
+
   const setDl=async()=>{
-    try{await api.put('/api/wishes/deadline',{deadline,targetMonth:ym});toast.success('期限を設定しました')}
-    catch{toast.error('設定に失敗しました')}
+    try{
+      await api.put('/api/wishes/deadline',{deadline,targetMonth:ym,periodStart,periodEnd})
+      toast.success('期限・期間を設定しました')
+    }catch{toast.error('設定に失敗しました')}
   }
 
   return(
@@ -52,13 +69,35 @@ export default function AdminShift() {
           <button onClick={()=>setVd(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:'var(--bg3)',border:'1px solid var(--bd)',color:'var(--tx2)',padding:6,borderRadius:'var(--r)'}}><ChevronRight size={14}/></button>
         </div>
       </div>
-      <div className="card" style={{padding:'12px 14px'}}>
-        <p className="lbl" style={{color:'var(--ac)',marginBottom:8}}>希望提出期限</p>
-        <div style={{display:'flex',gap:8}}>
-          <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)} className="inp"/>
-          <button className="btn btn-p" onClick={setDl} style={{whiteSpace:'nowrap',padding:'9px 14px',fontSize:9}}>設定</button>
+
+      {/* 期限・期間設定 */}
+      <div className="card" style={{padding:'14px'}}>
+        <p className="lbl" style={{color:'var(--ac)',marginBottom:12}}>希望提出 期限・期間設定</p>
+        <div style={{display:'flex',flexDirection:'column',gap:10}}>
+          <div>
+            <label className="lbl">提出期限</label>
+            <input type="date" value={deadline} onChange={e=>setDeadline(e.target.value)} className="inp"/>
+          </div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:10}}>
+            <div>
+              <label className="lbl">提出期間（開始）</label>
+              <input type="date" value={periodStart} onChange={e=>setPeriodStart(e.target.value)} className="inp"/>
+            </div>
+            <div>
+              <label className="lbl">提出期間（終了）</label>
+              <input type="date" value={periodEnd} onChange={e=>setPeriodEnd(e.target.value)} className="inp"/>
+            </div>
+          </div>
+          {periodStart && periodEnd && (
+            <div style={{background:'rgba(77,159,255,0.08)',border:'1px solid rgba(77,159,255,0.2)',borderRadius:'var(--r)',padding:'8px 12px',fontSize:11,color:'var(--blue)',fontWeight:700}}>
+              {periodStart} 〜 {periodEnd} の日付のみ選択可能になります
+            </div>
+          )}
+          <button className="btn btn-p" onClick={setDl} style={{width:'100%'}}>設定を保存する</button>
         </div>
       </div>
+
+      {/* シフト表 */}
       <div style={{overflowX:'auto',border:'1px solid var(--bd)',borderRadius:'var(--r2)',background:'var(--bg2)',maxHeight:430}}>
         <table style={{width:'100%',borderCollapse:'separate',borderSpacing:0,minWidth:600}}>
           <thead>
@@ -92,6 +131,8 @@ export default function AdminShift() {
           </tbody>
         </table>
       </div>
+
+      {/* 選択日編集 */}
       {selDay&&(
         <div className="card fu">
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>

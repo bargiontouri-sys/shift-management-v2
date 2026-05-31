@@ -11,8 +11,8 @@ router.get('/deadline', async (req, res) => {
 })
 router.put('/deadline', admin, async (req, res) => {
   try {
-    const { deadline, targetMonth } = req.body
-    const r = await db.wishDeadline.create({ data:{ storeId:req.staff.storeId, deadline, targetMonth } })
+    const { deadline, targetMonth, periodStart, periodEnd } = req.body
+    const r = await db.wishDeadline.create({ data:{ storeId:req.staff.storeId, deadline, targetMonth, periodStart:periodStart||'', periodEnd:periodEnd||'' } })
     res.json(r)
   } catch { res.status(500).json({ error:'Server error' }) }
 })
