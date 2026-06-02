@@ -1,9 +1,22 @@
 import { useState, useEffect } from 'react'
-import { Clock as ClockIcon, LogOut, CalendarDays, Edit2 } from 'lucide-react'
+import { Clock as ClockIcon, LogOut, CalendarDays, MapPin, AlertCircle, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../lib/store'
 import { todayDk } from '../lib/utils'
 import { api } from '../lib/api'
+
+// 職場の位置情報（ここを実際の職場の緯度経度に変更してください）
+const WORKPLACE_LAT = 35.0037  // 例: 東京（実際の店舗に変更）
+const WORKPLACE_LNG = 135.7789
+const ALLOWED_RADIUS_M = 100   // 100m以内
+
+function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLng = (lng2 - lng1) * Math.PI / 180
+  const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLng/2)**2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}
 
 export default function Clock() {
   const { staff } = useAuth()
@@ -15,6 +28,8 @@ export default function Clock() {
   const [allStaff, setAllStaff] = useState<any[]>([])
   const [editPunch, setEditPunch] = useState<any>(null)
   const [editTime, setEditTime] = useState('')
+  const [locStatus, setLocStatus] = useState<'checking'|'ok'|'far'|'denied'|'idle'>('idle')
+  const [distance, setDistance] = useState<number|null>(null)
   const today = todayDk()
 
   useEffect(() => { const t=setInterval(()=>setNow(new Date()),1000); return ()=>clearInterval(t) }, [])
@@ -36,14 +51,51 @@ export default function Clock() {
     } catch {}
   }
 
+  const checkLocation = (): Promise<{lat:number; lng:number}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) { reject(new Error('geolocation_unsupported')); return }
+      setLocStatus('checking')
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          const { latitude, longitude } = pos.coords
+          const dist = getDistance(latitude, longitude, WORKPLACE_LAT, WORKPLACE_LNG)
+          setDistance(Math.round(dist))
+          if (dist <= ALLOWED_RADIUS_M) {
+            setLocStatus('ok')
+            resolve({ lat: latitude, lng: longitude })
+          } else {
+            setLocStatus('far')
+            reject(new Error('too_far'))
+          }
+        },
+        err => {
+          setLocStatus('denied')
+          reject(new Error('denied'))
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      )
+    })
+  }
+
   const punch = async (type:'in'|'out') => {
     setLoading(true)
     try {
-      const { data } = await api.post('/api/punches', { type })
+      const { lat, lng } = await checkLocation()
+      const { data } = await api.post('/api/punches', { type, lat, lng })
       setPunches(p => [...p, data])
       setAllPunches(p => [...p, data])
       toast.success(type==='in' ? `出勤しました！ ${data.time}` : `退勤しました！ ${data.time}`)
-    } catch(e:any) { toast.error(e.response?.data?.error || 'エラーが発生しました') }
+    } catch(e:any) {
+      if (e.message === 'too_far') {
+        toast.error(`職場から${distance}m離れています（100m以内が必要）`)
+      } else if (e.message === 'denied') {
+        toast.error('位置情報の許可が必要です。ブラウザの設定を確認してください')
+      } else if (e.message === 'geolocation_unsupported') {
+        toast.error('このブラウザは位置情報に対応していません')
+      } else {
+        toast.error(e.response?.data?.error || 'エラーが発生しました')
+      }
+    }
     finally { setLoading(false) }
   }
 
@@ -90,6 +142,19 @@ export default function Clock() {
         </div>
       )}
 
+      {/* 位置情報ステータス */}
+      {locStatus !== 'idle' && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 14px', borderRadius:'var(--r)', border:`1px solid ${locStatus==='ok'?'rgba(0,232,122,0.3)':locStatus==='checking'?'var(--bd)':'rgba(255,61,90,0.3)'}`, background:locStatus==='ok'?'rgba(0,232,122,0.06)':locStatus==='checking'?'var(--bg3)':'rgba(255,61,90,0.06)' }}>
+          <MapPin size={14} color={locStatus==='ok'?'var(--green)':locStatus==='checking'?'var(--tx3)':'var(--red)'}/>
+          <span style={{ fontSize:11, fontWeight:700, color:locStatus==='ok'?'var(--green)':locStatus==='checking'?'var(--tx3)':'var(--red)' }}>
+            {locStatus==='checking' ? '位置情報を取得中...'
+              : locStatus==='ok' ? `職場から${distance}m — 打刻可能`
+              : locStatus==='far' ? `職場から${distance}m離れています（100m以内が必要）`
+              : '位置情報の許可が必要です'}
+          </span>
+        </div>
+      )}
+
       {last&&(
         <div style={{ textAlign:'center', fontSize:10, fontWeight:700, color:isClockedIn?'var(--green)':'var(--tx3)', textTransform:'uppercase', letterSpacing:'0.2em' }}>
           {isClockedIn?`● 出勤中 — ${last.time}〜`:`○ 退勤済 — ${last.time}`}
@@ -111,12 +176,15 @@ export default function Clock() {
 
       {punches.length>0&&(
         <div className="card">
-          <p style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:12 }}>本日の自分の打刻</p>
+          <p style={{ fontSize:9, color:'var(--tx3)', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em', marginBottom:12 }}>本日の打刻履歴</p>
           <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
             {punches.map((p:any)=>(
               <div key={p.id} style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
                 <span style={{ fontSize:9, fontWeight:900, textTransform:'uppercase', letterSpacing:'0.12em', padding:'3px 8px', background:p.type==='in'?'rgba(0,232,122,0.1)':'rgba(255,61,90,0.1)', color:p.type==='in'?'var(--green)':'var(--red)', border:`1px solid ${p.type==='in'?'rgba(0,232,122,0.25)':'rgba(255,61,90,0.25)'}`, borderRadius:'3px' }}>{p.type==='in'?'出勤':'退勤'}</span>
-                <span style={{ fontFamily:'var(--mono)', fontWeight:700, fontSize:14 }}>{p.time}</span>
+                <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                  {p.lat && <span style={{ fontSize:8, color:'var(--green)', display:'flex', alignItems:'center', gap:2 }}><MapPin size={9}/>位置OK</span>}
+                  <span style={{ fontFamily:'var(--mono)', fontWeight:700, fontSize:14 }}>{p.time}</span>
+                </div>
               </div>
             ))}
           </div>
@@ -146,7 +214,7 @@ export default function Clock() {
                       {sp.map((p:any)=>(
                         <div key={p.id}>
                           {editPunch?.id===p.id?(
-                            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:4, background:'var(--bg3)', border:'1px solid var(--bd2)', borderRadius:'var(--r)', padding:'4px 8px' }}>
                               <span style={{ fontSize:9, color:p.type==='in'?'var(--green)':'var(--red)', fontWeight:700 }}>{p.type==='in'?'IN':'OUT'}</span>
                               <input type="time" value={editTime} onChange={e=>setEditTime(e.target.value)}
                                 style={{ background:'var(--bg2)', border:'1px solid var(--bd2)', padding:'2px 6px', fontSize:11, color:'var(--tx)', fontFamily:'var(--mono)', outline:'none', borderRadius:'var(--r)', width:90 }}/>
