@@ -22,7 +22,7 @@ export default function Wish() {
   const ym = `${y}-${String(m+1).padStart(2,'0')}`
 
   useEffect(() => {
-    api.get(`/api/wishes?month=${ym}`).then(r => {
+    api.get(`/api/wishes?month=${ym}&staffId=${staff?.id}`).then(r => {
       const map: any = {}
       r.data.forEach((w: any) => map[w.date] = w)
       setWishes(map)
