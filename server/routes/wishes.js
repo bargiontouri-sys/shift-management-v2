@@ -20,10 +20,16 @@ router.get('/', async (req, res) => {
   try {
     const { month, staffId } = req.query
     const where = {}
-    if (req.staff.isAdmin) {
-      if (staffId) { where.staffId = staffId }
-      else { const ss = await db.staff.findMany({ where:{ storeId:req.staff.storeId }, select:{ id:true } }); where.staffId = { in:ss.map(s=>s.id) } }
-    } else { where.staffId = req.staff.id }
+    // staffIdが指定されている場合は常にそのスタッフのみ返す
+    if (staffId) {
+      where.staffId = staffId
+    } else if (req.staff.isAdmin) {
+      // 管理者でstaffId未指定の場合のみ全員分
+      const ss = await db.staff.findMany({ where:{ storeId:req.staff.storeId }, select:{ id:true } })
+      where.staffId = { in: ss.map(s=>s.id) }
+    } else {
+      where.staffId = req.staff.id
+    }
     if (month) where.date = { startsWith: month }
     const wishes = await db.wish.findMany({ where, include:{ staff:{ select:{ id:true, name:true } } }, orderBy:{ date:'asc' } })
     res.json(wishes)
