@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, CheckCircle2, XCircle, AlertCircle, Send, Clock } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { WEEKDAYS, HOLIDAYS, TIME_OPTS, dk } from '../lib/utils'
+import { useAuth } from '../lib/store'
 import { api } from '../lib/api'
 
 const CLOSED_DAYS = [1]
 
 export default function Wish() {
+  const { staff } = useAuth()
   const n = new Date()
   const [y, setY] = useState(n.getFullYear())
   const [m, setM] = useState(n.getMonth())
@@ -15,14 +17,14 @@ export default function Wish() {
   const [periodStart, setPeriodStart] = useState<string|null>(null)
   const [periodEnd, setPeriodEnd] = useState<string|null>(null)
   const [saving, setSaving] = useState(false)
-  // 一括時間設定
   const [bulkStart, setBulkStart] = useState('18:00')
   const [bulkEnd, setBulkEnd] = useState('24:00')
   const [bulkMode, setBulkMode] = useState(false)
   const ym = `${y}-${String(m+1).padStart(2,'0')}`
 
   useEffect(() => {
-    api.get(`/api/wishes?month=${ym}&staffId=${staff?.id}`).then(r => {
+    if (!staff?.id) return
+    api.get(`/api/wishes?month=${ym}&staffId=${staff.id}`).then(r => {
       const map: any = {}
       r.data.forEach((w: any) => map[w.date] = w)
       setWishes(map)
@@ -32,7 +34,7 @@ export default function Wish() {
       setPeriodStart(r.data?.periodStart || null)
       setPeriodEnd(r.data?.periodEnd || null)
     }).catch(() => {})
-  }, [y, m])
+  }, [y, m, staff?.id])
 
   const key = (d: number) => dk(y, m, d)
 
@@ -43,7 +45,18 @@ export default function Wish() {
     return true
   }
 
-  const toggle = (k: string) => {
+  // 変更のたびに即時保存
+  const saveWish = async (date: string, status: string, start: string, end: string) => {
+    try {
+      if (status === 'none') {
+        await api.post('/api/wishes/bulk', { wishes: [{ date, status: 'none' }] })
+      } else {
+        await api.post('/api/wishes/bulk', { wishes: [{ date, status, start, end }] })
+      }
+    } catch { toast.error('保存に失敗しました') }
+  }
+
+  const toggle = async (k: string) => {
     const dw = new Date(k).getDay()
     if (CLOSED_DAYS.includes(dw)) { toast.error('月曜日は定休日です'); return }
     if (!isInPeriod(k)) { toast.error('提出期間外の日付です'); return }
@@ -51,32 +64,41 @@ export default function Wish() {
     const next = cur === 'none' ? 'ok' : cur === 'ok' ? 'ng' : 'none'
     const start = bulkMode ? bulkStart : (wishes[k]?.start || '18:00')
     const end = bulkMode ? bulkEnd : (wishes[k]?.end || '24:00')
+    // 即座にUI更新
     setWishes(p => ({ ...p, [k]: { ...p[k], date:k, status:next, start, end } }))
+    // 即時保存
+    await saveWish(k, next, start, end)
   }
 
-  // 一括時間変更をOK済みの日付に適用
-  const applyBulkTime = () => {
-    setWishes(p => {
-      const updated = { ...p }
-      Object.keys(updated).forEach(k => {
-        if (updated[k]?.status === 'ok') {
-          updated[k] = { ...updated[k], start: bulkStart, end: bulkEnd }
-        }
-      })
-      return updated
+  const applyBulkTime = async () => {
+    const updated: any = {}
+    const toSave: any[] = []
+    Object.keys(wishes).forEach(k => {
+      if (wishes[k]?.status === 'ok') {
+        updated[k] = { ...wishes[k], start: bulkStart, end: bulkEnd }
+        toSave.push({ date: k, status: 'ok', start: bulkStart, end: bulkEnd })
+      }
     })
-    toast.success('出勤希望日に時間を一括適用しました')
+    setWishes(p => ({ ...p, ...updated }))
+    if (toSave.length > 0) {
+      try {
+        await api.post('/api/wishes/bulk', { wishes: toSave })
+        toast.success('時間を一括適用しました')
+      } catch { toast.error('適用に失敗しました') }
+    }
   }
 
-  const updT = (k: string, f: 'start'|'end', v: string) =>
-    setWishes(p => ({ ...p, [k]: { ...p[k], [f]: v } }))
+  const updT = async (k: string, f: 'start'|'end', v: string) => {
+    const updated = { ...wishes[k], [f]: v }
+    setWishes(p => ({ ...p, [k]: updated }))
+    await saveWish(k, updated.status, updated.start, updated.end)
+  }
 
   const submit = async () => {
     setSaving(true)
     try {
-      await api.post('/api/wishes/bulk', {
-        wishes: Object.values(wishes)
-      })
+      const all = Object.values(wishes)
+      await api.post('/api/wishes/bulk', { wishes: all })
       toast.success('希望を提出しました！')
     } catch { toast.error('提出に失敗しました') }
     finally { setSaving(false) }
@@ -89,39 +111,28 @@ export default function Wish() {
 
   return (
     <div className="fu" style={{ display:'flex', flexDirection:'column', gap:16 }}>
-      {/* 定休日バナー */}
       <div style={{ background:'rgba(77,159,255,0.08)', border:'1px solid rgba(77,159,255,0.2)', borderRadius:'var(--r)', padding:'8px 14px', display:'flex', alignItems:'center', gap:10 }}>
         <span style={{ fontSize:9, fontWeight:900, color:'var(--blue)', textTransform:'uppercase', letterSpacing:'0.1em' }}>定休日</span>
         <span style={{ fontSize:13, fontWeight:700, color:'var(--blue)' }}>毎週月曜日</span>
       </div>
 
-      {/* 提出期限・期間 */}
       {(deadline || periodStart || periodEnd) && (
         <div style={{ background:'rgba(255,61,90,0.08)', border:'1px solid rgba(255,61,90,0.25)', borderRadius:'var(--r)', padding:'10px 14px', display:'flex', flexDirection:'column', gap:6 }}>
           {deadline && (
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <AlertCircle size={12} color="var(--red)"/>
-                <span style={{ fontSize:9, fontWeight:900, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.15em' }}>提出期限</span>
-              </div>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}><AlertCircle size={12} color="var(--red)"/><span style={{ fontSize:9, fontWeight:900, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.15em' }}>提出期限</span></div>
               <span style={{ fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--red)' }}>{deadline}</span>
             </div>
           )}
           {(periodStart || periodEnd) && (
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-              <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                <Clock size={12} color="var(--red)"/>
-                <span style={{ fontSize:9, fontWeight:900, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.15em' }}>提出期間</span>
-              </div>
-              <span style={{ fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--red)' }}>
-                {periodStart || '—'} 〜 {periodEnd || '—'}
-              </span>
+              <div style={{ display:'flex', alignItems:'center', gap:6 }}><Clock size={12} color="var(--red)"/><span style={{ fontSize:9, fontWeight:900, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.15em' }}>提出期間</span></div>
+              <span style={{ fontFamily:'var(--mono)', fontSize:11, fontWeight:700, color:'var(--red)' }}>{periodStart || '—'} 〜 {periodEnd || '—'}</span>
             </div>
           )}
         </div>
       )}
 
-      {/* 月ナビ */}
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
         <h2 style={{ fontSize:14, fontWeight:900 }}>{y}年{m+1}月 希望提出</h2>
         <div style={{ display:'flex', gap:6 }}>
@@ -130,7 +141,6 @@ export default function Wish() {
         </div>
       </div>
 
-      {/* 一括時間設定 */}
       <div className="card" style={{ padding:12 }}>
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:bulkMode?10:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -144,25 +154,20 @@ export default function Wish() {
         </div>
         {bulkMode && (
           <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-            <select value={bulkStart} onChange={e => setBulkStart(e.target.value)}
-              style={{ background:'var(--bg2)', border:'1px solid var(--bd2)', padding:'6px 8px', fontSize:11, color:'var(--tx)', fontFamily:'var(--mono)', outline:'none', borderRadius:'var(--r)' }}>
+            <select value={bulkStart} onChange={e => setBulkStart(e.target.value)} style={{ background:'var(--bg2)', border:'1px solid var(--bd2)', padding:'6px 8px', fontSize:11, color:'var(--tx)', fontFamily:'var(--mono)', outline:'none', borderRadius:'var(--r)' }}>
               {TIME_OPTS.map(t => <option key={t}>{t}</option>)}
             </select>
             <span style={{ color:'var(--tx3)' }}>〜</span>
-            <select value={bulkEnd} onChange={e => setBulkEnd(e.target.value)}
-              style={{ background:'var(--bg2)', border:'1px solid var(--bd2)', padding:'6px 8px', fontSize:11, color:'var(--tx)', fontFamily:'var(--mono)', outline:'none', borderRadius:'var(--r)' }}>
+            <select value={bulkEnd} onChange={e => setBulkEnd(e.target.value)} style={{ background:'var(--bg2)', border:'1px solid var(--bd2)', padding:'6px 8px', fontSize:11, color:'var(--tx)', fontFamily:'var(--mono)', outline:'none', borderRadius:'var(--r)' }}>
               {TIME_OPTS.map(t => <option key={t}>{t}</option>)}
             </select>
-            <button onClick={applyBulkTime}
-              style={{ padding:'6px 12px', background:'rgba(240,192,64,0.1)', border:'1px solid rgba(240,192,64,0.3)', color:'var(--ac)', borderRadius:'var(--r)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
+            <button onClick={applyBulkTime} style={{ padding:'6px 12px', background:'rgba(240,192,64,0.1)', border:'1px solid rgba(240,192,64,0.3)', color:'var(--ac)', borderRadius:'var(--r)', fontSize:10, fontWeight:700, cursor:'pointer' }}>
               既存の希望日に適用
             </button>
-            <span style={{ fontSize:9, color:'var(--tx3)' }}>OFFにすると日別設定に戻ります</span>
           </div>
         )}
       </div>
 
-      {/* カレンダー */}
       <div className="card" style={{ padding:14 }}>
         <div style={{ display:'grid', gridTemplateColumns:'repeat(7,1fr)', gap:3, marginBottom:8 }}>
           {WEEKDAYS.map((d, i) => (
@@ -201,11 +206,10 @@ export default function Wish() {
           {[['○ 出勤OK', 'var(--green)'], ['× 出勤NG', 'var(--red)']].map(([l, c]) => (
             <div key={l} style={{ display:'flex', alignItems:'center', gap:4, fontSize:9, color:c as string, fontWeight:700 }}>{l}</div>
           ))}
-          <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700 }}>タップで切替</div>
+          <div style={{ fontSize:9, color:'var(--tx3)', fontWeight:700 }}>タップで切替・即時保存</div>
         </div>
       </div>
 
-      {/* 個別時間設定（一括モードOFF時） */}
       {!bulkMode && okDays.length > 0 && (
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           <p style={{ fontSize:9, color:'var(--tx3)', fontWeight:900, textTransform:'uppercase', letterSpacing:'0.15em' }}>出勤希望時間（個別設定）</p>
@@ -228,7 +232,6 @@ export default function Wish() {
         </div>
       )}
 
-      {/* 集計 */}
       {(okDays.length > 0 || ngDays.length > 0) && (
         <div style={{ display:'flex', gap:10 }}>
           <div style={{ flex:1, background:'rgba(0,232,122,0.06)', border:'1px solid rgba(0,232,122,0.2)', borderRadius:'var(--r)', padding:'8px 12px', textAlign:'center' }}>
@@ -242,9 +245,9 @@ export default function Wish() {
         </div>
       )}
 
-      <button className="btn btn-p" onClick={submit} disabled={saving} style={{ width:'100%' }}>
-        <Send size={12}/>{saving ? '送信中...' : okDays.length===0 && ngDays.length===0 ? '希望をクリアする' : `希望を提出する（OK:${okDays.length}日 / NG:${ngDays.length}日）`}
-      </button>
+      <div style={{ fontSize:9, color:'var(--green)', textAlign:'center', fontWeight:700 }}>
+        ✓ タップするたびに自動保存されます
+      </div>
     </div>
   )
 }
