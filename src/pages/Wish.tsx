@@ -242,8 +242,8 @@ export default function Wish() {
         </div>
       )}
 
-      <button className="btn btn-p" onClick={submit} disabled={saving || (okDays.length===0 && ngDays.length===0)} style={{ width:'100%' }}>
-        <Send size={12}/>{saving ? '送信中...' : `希望を提出する（OK:${okDays.length}日 / NG:${ngDays.length}日）`}
+      <button className="btn btn-p" onClick={submit} disabled={saving} style={{ width:'100%' }}>
+        <Send size={12}/>{saving ? '送信中...' : okDays.length===0 && ngDays.length===0 ? '希望をクリアする' : `希望を提出する（OK:${okDays.length}日 / NG:${ngDays.length}日）`}
       </button>
     </div>
   )
