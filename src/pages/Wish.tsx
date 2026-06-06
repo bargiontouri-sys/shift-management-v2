@@ -75,7 +75,7 @@ export default function Wish() {
     setSaving(true)
     try {
       await api.post('/api/wishes/bulk', {
-        wishes: Object.values(wishes).filter((w: any) => w.status !== 'none')
+        wishes: Object.values(wishes)
       })
       toast.success('希望を提出しました！')
     } catch { toast.error('提出に失敗しました') }
