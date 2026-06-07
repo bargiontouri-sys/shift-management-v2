@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
         where.staffId = { in: ss.map(s=>s.id) }
       }
     } else {
-      where.staffId = req.staff.id
+      where.staffId = staffId || req.staff.id
     }
     if (from) where.date = { gte: from }
     if (to)   where.date = { ...where.date, lte: to }
@@ -27,11 +27,21 @@ router.post('/', async (req, res) => {
   try {
     const { type, lat, lng } = req.body
     if (!type || !['in','out'].includes(type)) return res.status(400).json({ error: 'type must be in or out' })
-    // JSTで日付・時刻を取得（UTC+9）
     const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
     const date = jst.toISOString().slice(0, 10)
     const time = jst.toISOString().slice(11, 16)
     const punch = await db.punch.create({ data:{ staffId:req.staff.id, date, type, time, lat, lng } })
+    res.status(201).json(punch)
+  } catch { res.status(500).json({ error: 'Server error' }) }
+})
+
+// 管理者用: 任意スタッフの打刻を手動追加
+router.post('/manual', admin, async (req, res) => {
+  try {
+    const { staffId, date, type, time } = req.body
+    if (!staffId || !date || !type || !time) return res.status(400).json({ error: 'staffId, date, type, time required' })
+    if (!['in','out'].includes(type)) return res.status(400).json({ error: 'type must be in or out' })
+    const punch = await db.punch.create({ data:{ staffId, date, type, time } })
     res.status(201).json(punch)
   } catch { res.status(500).json({ error: 'Server error' }) }
 })
