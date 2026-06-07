@@ -8,7 +8,7 @@ import { api } from '../lib/api'
 // 職場の位置情報（ここを実際の職場の緯度経度に変更してください）
 const WORKPLACE_LAT = 35.0037  // 例: 東京（実際の店舗に変更）
 const WORKPLACE_LNG = 135.7789
-const ALLOWED_RADIUS_M = 100   // 100m以内
+const ALLOWED_RADIUS_M = 500   // 100m以内
 
 function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000
