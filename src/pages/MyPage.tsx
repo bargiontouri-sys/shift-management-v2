@@ -42,7 +42,7 @@ export default function MyPage() {
   useEffect(() => {
     const from = dateDk(pp.start)
     const to = dateDk(pp.end)
-    api.get(`/api/punches?from=${from}&to=${to}`).then(r => setPunches(r.data)).catch(() => {})
+    api.get(`/api/punches?from=${from}&to=${to}&staffId=${staff.id}`).then(r => setPunches(r.data)).catch(() => {})
   }, [viewDate])
 
   const prevPeriod = () => {
