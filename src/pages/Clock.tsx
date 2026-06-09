@@ -8,7 +8,7 @@ import { api } from '../lib/api'
 // 職場の位置情報（ここを実際の職場の緯度経度に変更してください）
 const WORKPLACE_LAT = 35.0037  // 例: 東京（実際の店舗に変更）
 const WORKPLACE_LNG = 135.7789
-const ALLOWED_RADIUS_M = 500   // 100m以内
+const ALLOWED_RADIUS_M = 500
 
 function getDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000
@@ -87,7 +87,7 @@ export default function Clock() {
       toast.success(type==='in' ? `出勤しました！ ${data.time}` : `退勤しました！ ${data.time}`)
     } catch(e:any) {
       if (e.message === 'too_far') {
-        toast.error(`職場から${distance}m離れています（100m以内が必要）`)
+        toast.error(`職場から${distance}m離れています（500m以内が必要）`)
       } else if (e.message === 'denied') {
         toast.error('位置情報の許可が必要です。ブラウザの設定を確認してください')
       } else if (e.message === 'geolocation_unsupported') {
@@ -149,7 +149,7 @@ export default function Clock() {
           <span style={{ fontSize:11, fontWeight:700, color:locStatus==='ok'?'var(--green)':locStatus==='checking'?'var(--tx3)':'var(--red)' }}>
             {locStatus==='checking' ? '位置情報を取得中...'
               : locStatus==='ok' ? `職場から${distance}m — 打刻可能`
-              : locStatus==='far' ? `職場から${distance}m離れています（100m以内が必要）`
+              : locStatus==='far' ? `職場から${distance}m離れています（500m以内が必要）`
               : '位置情報の許可が必要です'}
           </span>
         </div>
