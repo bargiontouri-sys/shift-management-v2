@@ -10,7 +10,10 @@ export default function AdminStats() {
   const [loading,setLoading]=useState(false)
   const y=vd.getFullYear(),m=vd.getMonth()
   const ym=`${y}-${String(m+1).padStart(2,'0')}`
-  const from=`${ym}-01`,to=`${ym}-${String(new Date(y,m+1,0).getDate()).padStart(2,'0')}`
+  // 11日締め: 当月11日〜翌月10日
+  const from=`${ym}-11`
+  const nextM = m===11 ? `${y+1}-01` : `${y}-${String(m+2).padStart(2,'0')}`
+  const to=`${nextM}-10`
 
   useEffect(()=>{fetch()},[y,m])
   const fetch=async()=>{
@@ -27,7 +30,7 @@ export default function AdminStats() {
         <div style={{display:'flex',alignItems:'center',gap:8}}><BarChart3 size={15} color="var(--ac)"/><h2 style={{fontSize:14,fontWeight:900}}>実績・人件費集計</h2></div>
         <div style={{display:'flex',alignItems:'center',gap:6}}>
           <button onClick={()=>setVd(d=>new Date(d.getFullYear(),d.getMonth()-1,1))} style={{background:'var(--bg3)',border:'1px solid var(--bd)',color:'var(--tx2)',padding:6,borderRadius:'var(--r)'}}><ChevronLeft size={14}/></button>
-          <span style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,minWidth:52,textAlign:'center'}}>{y}.{m+1}</span>
+          <span style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,minWidth:80,textAlign:'center'}}>{y}.{m+1}/11〜{m===11?y+1:y}.{m===11?1:m+2}/10</span>
           <button onClick={()=>setVd(d=>new Date(d.getFullYear(),d.getMonth()+1,1))} style={{background:'var(--bg3)',border:'1px solid var(--bd)',color:'var(--tx2)',padding:6,borderRadius:'var(--r)'}}><ChevronRight size={14}/></button>
           <button className="btn btn-g" onClick={()=>setVd(new Date())} style={{padding:'5px 10px',fontSize:9}}>今月</button>
         </div>
