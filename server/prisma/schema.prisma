@@ -25,6 +25,8 @@ model Staff {
   standardMonthlyHours Int      @default(160)
   pin                  String
   isAdmin              Boolean  @default(false)
+  sortOrder            Int      @default(0)
+  iconColor            String   @default("")
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
   store   Store   @relation(fields: [storeId], references: [id])

@@ -5,6 +5,12 @@ import { useAuth } from '../lib/store'
 import { api } from '../lib/api'
 import { dateDk, yen } from '../lib/utils'
 
+const ICON_COLORS = [
+  '#6366f1','#8b5cf6','#ec4899','#ef4444','#f59e0b',
+  '#10b981','#3b82f6','#06b6d4','#84cc16','#f97316',
+  '#e11d48','#7c3aed','#0891b2','#059669','#d97706',
+]
+
 function getPayPeriod(date: Date) {
   const y = date.getFullYear(), m = date.getMonth(), d = date.getDate()
   if (d >= 11) {
@@ -25,7 +31,7 @@ function calcPay(wage: number, type: string, stdH: number, fixOT: number, inT: s
 }
 
 export default function MyPage() {
-  const { staff } = useAuth()
+  const { staff, setAuth } = useAuth()
   const [cur, setCur] = useState('')
   const [nxt, setNxt] = useState('')
   const [showCur, setShowCur] = useState(false)
@@ -34,6 +40,7 @@ export default function MyPage() {
   const [punches, setPunches] = useState<any[]>([])
   const [viewDate, setViewDate] = useState(new Date())
   const [selDay, setSelDay] = useState<string|null>(null)
+  const [iconColor, setIconColor] = useState(staff?.iconColor || '')
 
   if (!staff) return null
 
@@ -45,23 +52,14 @@ export default function MyPage() {
     api.get(`/api/punches?from=${from}&to=${to}&staffId=${staff.id}`).then(r => setPunches(r.data)).catch(() => {})
   }, [viewDate])
 
-  const prevPeriod = () => {
-    const d = new Date(viewDate)
-    d.setMonth(d.getMonth() - 1)
-    setViewDate(d)
-  }
-  const nextPeriod = () => {
-    const d = new Date(viewDate)
-    d.setMonth(d.getMonth() + 1)
-    setViewDate(d)
-  }
+  const prevPeriod = () => { const d = new Date(viewDate); d.setMonth(d.getMonth()-1); setViewDate(d) }
+  const nextPeriod = () => { const d = new Date(viewDate); d.setMonth(d.getMonth()+1); setViewDate(d) }
 
-  // 期間集計
   const byDate: Record<string, any[]> = {}
   punches.forEach(p => { if (!byDate[p.date]) byDate[p.date] = []; byDate[p.date].push(p) })
 
   let totalHours = 0, totalLN = 0, totalOT = 0, totalPay = 0
-  const dayStats: { date:string; inT:string; outT:string; hours:number; ln:number; ot:number; pay:number }[] = []
+  const dayStats: any[] = []
 
   Object.entries(byDate).sort().forEach(([date, logs]) => {
     const ins = logs.filter(l => l.type==='in'), outs = logs.filter(l => l.type==='out')
@@ -77,9 +75,7 @@ export default function MyPage() {
     const bh = staff.wage / (staff.standardMonthlyHours||160)
     const extraOT = Math.max(0, totalOT - (staff.fixedOvertimeHours||0))
     totalWage = staff.wage + extraOT*bh*1.25 + totalLN*bh*0.25
-  } else {
-    totalWage = totalPay
-  }
+  } else { totalWage = totalPay }
 
   const changePin = async () => {
     if (nxt.length!==4||!/^\d+$/.test(nxt)) { toast.error('4桁の数字を入力してください'); return }
@@ -91,7 +87,17 @@ export default function MyPage() {
     finally { setSaving(false) }
   }
 
-  const selStats = selDay ? dayStats.find(d => d.date === selDay) : null
+  const changeIconColor = async (color: string) => {
+    setIconColor(color)
+    try {
+      await api.patch('/api/staff/icon-color', { iconColor: color })
+      // storeのstaffも更新
+      const me = await api.get('/api/auth/me')
+      toast.success('アイコンカラーを変更しました')
+    } catch { toast.error('変更に失敗しました') }
+  }
+
+  const currentColor = iconColor || '#6366f1'
 
   const inpStyle: React.CSSProperties = {
     flex:1, background:'var(--bg3)', border:'1px solid var(--bd2)', padding:'9px 12px',
@@ -124,6 +130,23 @@ export default function MyPage() {
         ))}
       </div>
 
+      {/* アイコンカラー */}
+      <div className="card">
+        <p className="lbl" style={{ marginBottom:14 }}>アイコンカラー</p>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+          <div style={{ width:48, height:48, background:currentColor, borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:20, color:'#fff', fontWeight:900 }}>{staff.name[0]}</div>
+          <span style={{ fontSize:12, color:'var(--tx3)' }}>選択中: <span style={{ color:currentColor, fontWeight:700 }}>{currentColor}</span></span>
+        </div>
+        <div style={{ display:'grid', gridTemplateColumns:'repeat(5,1fr)', gap:8 }}>
+          {ICON_COLORS.map(color => (
+            <button key={color} onClick={() => changeIconColor(color)}
+              style={{ aspectRatio:'1', background:color, borderRadius:'6px', border:`3px solid ${currentColor===color?'var(--tx)':'transparent'}`, cursor:'pointer', transition:'all 0.15s', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              {currentColor===color && <span style={{ color:'#fff', fontSize:16, fontWeight:900 }}>✓</span>}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 勤怠・給与 */}
       <div className="card">
         <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:14 }}>
@@ -135,7 +158,6 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* サマリー */}
         <div style={{ background:'var(--bg3)', border:'1px solid var(--bd)', borderRadius:'var(--r)', padding:14, marginBottom:14 }}>
           <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
             <div>
@@ -157,7 +179,6 @@ export default function MyPage() {
           </div>
         </div>
 
-        {/* 日別リスト */}
         {dayStats.length === 0 ? (
           <div style={{ textAlign:'center', padding:'16px 0', color:'var(--tx3)', fontSize:11 }}>この期間の勤務記録はありません</div>
         ) : (
@@ -207,14 +228,7 @@ export default function MyPage() {
             <div key={l}>
               <label className="lbl">{l}</label>
               <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                <input
-                  type={show ? 'text' : 'password'}
-                  maxLength={4}
-                  value={v}
-                  onChange={e => fn(e.target.value.replace(/\D/g,''))}
-                  placeholder="••••"
-                  style={inpStyle}
-                />
+                <input type={show ? 'text' : 'password'} maxLength={4} value={v} onChange={e => fn(e.target.value.replace(/\D/g,''))} placeholder="••••" style={inpStyle}/>
                 <button onClick={() => setShow((s: boolean) => !s)}
                   style={{ background:'var(--bg3)', border:'1px solid var(--bd2)', color:'var(--tx3)', borderRadius:'var(--r)', padding:'9px 12px', cursor:'pointer', flexShrink:0 }}>
                   {show ? <EyeOff size={16}/> : <Eye size={16}/>}

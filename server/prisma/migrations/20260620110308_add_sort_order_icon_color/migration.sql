@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Staff" ADD COLUMN     "iconColor" TEXT NOT NULL DEFAULT '',
+ADD COLUMN     "sortOrder" INTEGER NOT NULL DEFAULT 0;
