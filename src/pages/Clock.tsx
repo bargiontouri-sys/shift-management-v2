@@ -30,10 +30,17 @@ export default function Clock() {
   const [editTime, setEditTime] = useState('')
   const [locStatus, setLocStatus] = useState<'checking'|'ok'|'far'|'denied'|'idle'>('idle')
   const [distance, setDistance] = useState<number|null>(null)
-  const today = todayDk()
+  const [today, setToday] = useState(todayDk())
 
-  useEffect(() => { const t=setInterval(()=>setNow(new Date()),1000); return ()=>clearInterval(t) }, [])
-  useEffect(() => { fetchData() }, [])
+  useEffect(() => {
+    const t = setInterval(() => {
+      setNow(new Date())
+      const newToday = todayDk()
+      setToday(prev => prev !== newToday ? newToday : prev)
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
+  useEffect(() => { fetchData() }, [today])
 
   const fetchData = async () => {
     try {
