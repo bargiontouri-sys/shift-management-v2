@@ -3,7 +3,7 @@ import { create } from 'zustand'
 export interface Staff {
   id: string; name: string; role: string
   type: 'part-time' | 'full-time'; wage: number
-  isAdmin: boolean; fixedOvertimeHours: number; standardMonthlyHours: number
+  isAdmin: boolean; fixedOvertimeHours: number; standardMonthlyHours: number; iconColor?: string; sortOrder?: number
   store?: { id: string; name: string }
 }
 
