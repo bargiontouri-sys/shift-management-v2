@@ -28,7 +28,9 @@ router.post('/', async (req, res) => {
     const { type, lat, lng } = req.body
     if (!type || !['in','out'].includes(type)) return res.status(400).json({ error: 'type must be in or out' })
     const jst = new Date(Date.now() + 9 * 60 * 60 * 1000)
-    const date = jst.toISOString().slice(0, 10)
+    const bizJst = new Date(jst.getTime())
+    if (bizJst.getUTCHours() < 5) bizJst.setUTCDate(bizJst.getUTCDate() - 1)
+    const date = bizJst.toISOString().slice(0, 10)
     const time = jst.toISOString().slice(11, 16)
     const punch = await db.punch.create({ data:{ staffId:req.staff.id, date, type, time, lat, lng } })
     res.status(201).json(punch)

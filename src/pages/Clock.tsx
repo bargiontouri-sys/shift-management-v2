@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Clock as ClockIcon, LogOut, CalendarDays, MapPin, AlertCircle, Edit2 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import { useAuth } from '../lib/store'
-import { todayDk } from '../lib/utils'
+import { todayBiz } from '../lib/utils'
 import { api } from '../lib/api'
 
 // 職場の位置情報（ここを実際の職場の緯度経度に変更してください）
@@ -30,12 +30,12 @@ export default function Clock() {
   const [editTime, setEditTime] = useState('')
   const [locStatus, setLocStatus] = useState<'checking'|'ok'|'far'|'denied'|'idle'>('idle')
   const [distance, setDistance] = useState<number|null>(null)
-  const [today, setToday] = useState(todayDk())
+  const [today, setToday] = useState(todayBiz())
 
   useEffect(() => {
     const t = setInterval(() => {
       setNow(new Date())
-      const newToday = todayDk()
+      const newToday = todayBiz()
       setToday(prev => prev !== newToday ? newToday : prev)
     }, 1000)
     return () => clearInterval(t)

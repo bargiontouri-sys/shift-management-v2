@@ -15,6 +15,8 @@ export const nameColor = (n:string) => { let h=0; for(let i=0;i<n.length;i++) h=
 // JST変換（タイムゾーンバグ修正済み）
 export const nowJST = () => new Date(Date.now() + 9*60*60*1000)
 export const todayDk = () => nowJST().toISOString().slice(0,10)
+export const bizDateFrom = (jst:Date) => { const d=new Date(jst.getTime()); if(d.getUTCHours()<5) d.setUTCDate(d.getUTCDate()-1); return d.toISOString().slice(0,10) }
+export const todayBiz = () => bizDateFrom(nowJST())
 export const dateDk = (d:Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 export const dk = (y:number,m:number,d:number) => `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`
 export const yen = (n:number) => `¥${Math.round(n).toLocaleString('ja-JP')}`
