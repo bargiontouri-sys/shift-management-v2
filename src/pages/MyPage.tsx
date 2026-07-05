@@ -42,11 +42,11 @@ export default function MyPage() {
   const [selDay, setSelDay] = useState<string|null>(null)
   const [iconColor, setIconColor] = useState('')
 
-  if (!staff) return null
-
   useEffect(() => {
     if (staff?.iconColor) setIconColor(staff.iconColor)
   }, [staff?.iconColor])
+
+  if (!staff) return null
 
   const pp = getPayPeriod(viewDate)
 
