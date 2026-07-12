@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { ChevronLeft, ChevronRight, CheckCircle2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CheckCircle2, GripVertical } from 'lucide-react'
 import toast from 'react-hot-toast'
-import { WEEKDAYS, HOLIDAYS, TIME_OPTS, nameColor, dateDk, todayDk } from '../lib/utils'
+import { WEEKDAYS, HOLIDAYS, TIME_OPTS, nameColor, dateDk, todayDk, yen } from '../lib/utils'
 import { api } from '../lib/api'
 
 export default function AdminShift() {
@@ -10,6 +10,8 @@ export default function AdminShift() {
   const [shifts, setShifts] = useState<any[]>([])
   const [wishes, setWishes] = useState<any[]>([])
   const [selDay, setSelDay] = useState<string|null>(null)
+  const [dragIdx, setDragIdx] = useState<number|null>(null)
+  const [dragOver, setDragOver] = useState<number|null>(null)
   const [deadline, setDeadline] = useState('')
   const [periodStart, setPeriodStart] = useState('')
   const [periodEnd, setPeriodEnd] = useState('')
@@ -39,6 +41,24 @@ export default function AdminShift() {
 
   const gs=(sid:string,d:string)=>shifts.find(s=>s.staffId===sid&&s.date===d)
   const gw=(sid:string,d:string)=>wishes.find(w=>w.staffId===sid&&w.date===d)
+
+  const toMin=(t:string)=>{const[h,mm]=t.split(':').map(Number);return h*60+mm}
+  const shHours=(sh:any)=>sh&&sh.type!=='off'?Math.max(0,(toMin(sh.end)-toMin(sh.start))/60):0
+  const dailyCost=(d:string)=>staff.reduce((sum,s)=>sum+shHours(gs(s.id,d))*s.wage,0)
+  const monthlyCost=(sid:string)=>{const w=staff.find(s=>s.id===sid)?.wage||0;return shifts.filter(sh=>sh.staffId===sid).reduce((sum,sh)=>sum+shHours(sh)*w,0)}
+
+  const handleDragStart=(idx:number)=>setDragIdx(idx)
+  const handleDragOver=(e:React.DragEvent,idx:number)=>{e.preventDefault();setDragOver(idx)}
+  const handleDrop=async(idx:number)=>{
+    if(dragIdx===null||dragIdx===idx){setDragIdx(null);setDragOver(null);return}
+    const newStaff=[...staff]
+    const[moved]=newStaff.splice(dragIdx,1)
+    newStaff.splice(idx,0,moved)
+    setStaff(newStaff)
+    setDragIdx(null);setDragOver(null)
+    try{await api.patch('/api/staff/sort',{order:newStaff.map(s=>s.id)})}
+    catch{toast.error('並び替えの保存に失敗しました')}
+  }
 
   const upd=async(staffId:string,date:string,type:string,start='',end='')=>{
     try{
@@ -112,10 +132,17 @@ export default function AdminShift() {
             </tr>
           </thead>
           <tbody>
-            {staff.map(s=>(
-              <tr key={s.id}>
-                <td style={{position:'sticky',left:0,zIndex:5,background:'var(--bg)',padding:'6px 10px',borderBottom:'1px solid var(--bd)',borderRight:'1px solid var(--bd)'}}>
-                  <div style={{display:'flex',alignItems:'center',gap:5}}>
+            {staff.map((s,idx)=>(
+              <tr key={s.id}
+                draggable
+                onDragStart={()=>handleDragStart(idx)}
+                onDragOver={e=>handleDragOver(e,idx)}
+                onDrop={()=>handleDrop(idx)}
+                onDragEnd={()=>{setDragIdx(null);setDragOver(null)}}
+                style={{opacity:dragIdx===idx?0.5:1}}>
+                <td style={{position:'sticky',left:0,zIndex:5,background:dragOver===idx?'rgba(240,192,64,0.08)':'var(--bg)',padding:'6px 10px',borderBottom:'1px solid var(--bd)',borderRight:'1px solid var(--bd)',cursor:'grab'}}>
+                  <div style={{display:'flex',alignItems:'center',gap:4}}>
+                    <GripVertical size={10} color="var(--tx3)" style={{flexShrink:0}}/>
                     <div style={{width:18,height:18,background:nameColor(s.name),borderRadius:'2px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:8,color:'#fff',fontWeight:900,flexShrink:0}}>{s.name[0]}</div>
                     <span style={{fontSize:9,fontWeight:700,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap',maxWidth:54}}>{s.name}</span>
                   </div>
@@ -136,7 +163,10 @@ export default function AdminShift() {
       {selDay&&(
         <div className="card fu">
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
-            <h3 style={{fontSize:11,fontWeight:900,textTransform:'uppercase',fontFamily:'var(--mono)'}}>{selDay.split('-').slice(1).join('/')}</h3>
+            <div style={{display:'flex',alignItems:'baseline',gap:10}}>
+              <h3 style={{fontSize:11,fontWeight:900,textTransform:'uppercase',fontFamily:'var(--mono)'}}>{selDay.split('-').slice(1).join('/')}</h3>
+              <span style={{fontSize:10,fontWeight:700,color:'var(--tx3)'}}>概算人件費 <span style={{color:'var(--ac)',fontFamily:'var(--mono)'}}>{yen(dailyCost(selDay))}</span></span>
+            </div>
             <div style={{display:'flex',gap:8}}>
               <button onClick={()=>reflect(selDay)} style={{display:'flex',alignItems:'center',gap:5,padding:'5px 10px',background:'rgba(240,192,64,0.1)',border:'1px solid rgba(240,192,64,0.3)',color:'var(--ac)',borderRadius:'var(--r)',fontSize:9,fontWeight:900,textTransform:'uppercase'}}><CheckCircle2 size={11}/>希望を反映</button>
               <button onClick={()=>setSelDay(null)} style={{color:'var(--tx3)',fontSize:9,fontWeight:700,background:'none',border:'none'}}>閉じる</button>
@@ -171,6 +201,26 @@ export default function AdminShift() {
           </div>
         </div>
       )}
+
+      {/* 月次人件費サマリー */}
+      <div className="card" style={{padding:'14px'}}>
+        <p className="lbl" style={{color:'var(--ac)',marginBottom:12}}>{y}年{m+1}月 個人別概算人件費</p>
+        <div style={{display:'flex',flexDirection:'column',gap:6}}>
+          {staff.map(s=>(
+            <div key={s.id} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'6px 10px',background:'var(--bg3)',border:'1px solid var(--bd)',borderRadius:'var(--r)'}}>
+              <div style={{display:'flex',alignItems:'center',gap:6}}>
+                <div style={{width:16,height:16,background:nameColor(s.name),borderRadius:'2px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,color:'#fff',fontWeight:900,flexShrink:0}}>{s.name[0]}</div>
+                <span style={{fontSize:10,fontWeight:700}}>{s.name}</span>
+              </div>
+              <span style={{fontSize:11,fontWeight:900,fontFamily:'var(--mono)',color:'var(--tx)'}}>{yen(monthlyCost(s.id))}</span>
+            </div>
+          ))}
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'8px 10px',marginTop:4,borderTop:'1px solid var(--bd)'}}>
+            <span style={{fontSize:10,fontWeight:900,color:'var(--tx3)',textTransform:'uppercase'}}>合計</span>
+            <span style={{fontSize:12,fontWeight:900,fontFamily:'var(--mono)',color:'var(--ac)'}}>{yen(staff.reduce((sum,s)=>sum+monthlyCost(s.id),0))}</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
