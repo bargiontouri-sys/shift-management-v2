@@ -17,7 +17,7 @@ router.get('/', admin, async (req, res) => {
   try {
     const { from, to } = req.query
     if (!from||!to) return res.status(400).json({ error:'from and to required' })
-    const allStaff = await db.staff.findMany({ where:{ storeId:req.staff.storeId }, select:{ id:true, name:true, type:true, wage:true, fixedOvertimeHours:true, standardMonthlyHours:true } })
+    const allStaff = await db.staff.findMany({ where:{ storeId:req.staff.storeId }, select:{ id:true, name:true, type:true, wage:true, fixedOvertimeHours:true, standardMonthlyHours:true }, orderBy:{ sortOrder:'asc' } })
     const punches = await db.punch.findMany({ where:{ staffId:{ in:allStaff.map(s=>s.id) }, date:{ gte:from, lte:to } }, orderBy:[{ staffId:'asc' },{ date:'asc' },{ createdAt:'asc' }] })
 
     const staffStats = allStaff.map(staff => {
