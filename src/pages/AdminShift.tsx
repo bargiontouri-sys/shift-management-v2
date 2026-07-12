@@ -44,8 +44,13 @@ export default function AdminShift() {
 
   const toMin=(t:string)=>{const[h,mm]=t.split(':').map(Number);return h*60+mm}
   const shHours=(sh:any)=>sh&&sh.type!=='off'?Math.max(0,(toMin(sh.end)-toMin(sh.start))/60):0
-  const dailyCost=(d:string)=>staff.reduce((sum,s)=>sum+shHours(gs(s.id,d))*s.wage,0)
-  const monthlyCost=(sid:string)=>{const w=staff.find(s=>s.id===sid)?.wage||0;return shifts.filter(sh=>sh.staffId===sid).reduce((sum,sh)=>sum+shHours(sh)*w,0)}
+  const dailyCost=(d:string)=>staff.reduce((sum,s)=>s.type==='full-time'?sum:sum+shHours(gs(s.id,d))*s.wage,0)
+  const monthlyCost=(sid:string)=>{
+    const st=staff.find(s=>s.id===sid)
+    if(!st) return 0
+    if(st.type==='full-time') return st.wage
+    return shifts.filter(sh=>sh.staffId===sid).reduce((sum,sh)=>sum+shHours(sh)*st.wage,0)
+  }
 
   const handleDragStart=(idx:number)=>setDragIdx(idx)
   const handleDragOver=(e:React.DragEvent,idx:number)=>{e.preventDefault();setDragOver(idx)}
