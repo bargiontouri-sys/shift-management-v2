@@ -6,7 +6,7 @@ const router = Router(), db = new PrismaClient()
 
 router.get('/store-staff/:storeId', async (req, res) => {
   try {
-    const s = await db.staff.findMany({ where:{ storeId:req.params.storeId }, select:{ id:true, name:true, role:true }, orderBy:{ sortOrder:'asc' } })
+    const s = await db.staff.findMany({ where:{ storeId:req.params.storeId }, select:{ id:true, name:true, role:true, iconColor:true }, orderBy:{ sortOrder:'asc' } })
     res.json(s)
   } catch { res.status(500).json({ error:'Server error' }) }
 })

@@ -9,7 +9,7 @@ export interface Staff {
 
 interface S {
   token: string | null; staff: Staff | null
-  storeStaff: { id: string; name: string; role: string }[]
+  storeStaff: { id: string; name: string; role: string; iconColor?: string }[]
   setAuth: (token: string, staff: Staff) => void
   logout: () => void
   setStoreStaff: (l: { id: string; name: string; role: string }[]) => void

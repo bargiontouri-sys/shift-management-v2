@@ -58,7 +58,7 @@ export default function Login() {
                 return (
                   <button key={s.id} onClick={()=>{ setSelId(s.id); setPin(''); setError('') }}
                     style={{ padding:'10px', border:`2px solid ${sel?'var(--tx)':'var(--bd)'}`, background:sel?'var(--tx)':'var(--bg3)', color:sel?'var(--bg)':'var(--tx2)', borderRadius:'var(--r)', display:'flex', alignItems:'center', gap:7, fontSize:12, fontWeight:700, textAlign:'left', transition:'all 0.12s' }}>
-                    <div style={{ width:26, height:26, background:nameColor(s.name), borderRadius:'3px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#fff', fontWeight:900, flexShrink:0 }}>{s.name[0]}</div>
+                    <div style={{ width:26, height:26, background:s.iconColor||nameColor(s.name), borderRadius:'3px', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'#fff', fontWeight:900, flexShrink:0 }}>{s.name[0]}</div>
                     <span style={{ overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{s.name}</span>
                   </button>
                 )
