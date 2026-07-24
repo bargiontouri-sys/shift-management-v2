@@ -22,12 +22,14 @@ function getPayPeriod(date: Date) {
 function calcPay(wage: number, type: string, stdH: number, fixOT: number, inT: string, outT: string) {
   const pt = (t: string) => { const [h,m] = t.split(':').map(Number); return h+m/60 }
   const s = pt(inT); let e = pt(outT); if (e < s) e += 24
-  const total = e-s, ot = Math.max(0, total-8), ln = Math.max(0, Math.min(e,29)-Math.max(s,22))
+  const raw = e-s
+  const breakH = raw>8?1:raw>6?0.75:0
+  const total = raw-breakH, ot = Math.max(0, total-8), ln = Math.max(0, Math.min(e,29)-Math.max(s,22))
   const bh = type === 'full-time' ? wage/(stdH||160) : wage
   const base = type === 'part-time' ? (total-ot)*bh : 0
   const otP = type === 'part-time' ? ot*bh*1.25 : 0
   const lnP = ln*bh*0.25
-  return { total, ot, ln, base, otP, lnP, pay: base+otP+lnP, bh }
+  return { total, ot, ln, breakH, base, otP, lnP, pay: base+otP+lnP, bh }
 }
 
 export default function MyPage() {
@@ -62,15 +64,15 @@ export default function MyPage() {
   const byDate: Record<string, any[]> = {}
   punches.forEach(p => { if (!byDate[p.date]) byDate[p.date] = []; byDate[p.date].push(p) })
 
-  let totalHours = 0, totalLN = 0, totalOT = 0, totalPay = 0
+  let totalHours = 0, totalLN = 0, totalOT = 0, totalPay = 0, totalBreak = 0
   const dayStats: any[] = []
 
   Object.entries(byDate).sort().forEach(([date, logs]) => {
     const ins = logs.filter(l => l.type==='in'), outs = logs.filter(l => l.type==='out')
     for (let i=0; i<Math.min(ins.length,outs.length); i++) {
       const c = calcPay(staff.wage, staff.type, staff.standardMonthlyHours||160, staff.fixedOvertimeHours||20, ins[i].time, outs[i].time)
-      totalHours += c.total; totalLN += c.ln; totalOT += c.ot; totalPay += c.pay
-      dayStats.push({ date, inT:ins[i].time, outT:outs[i].time, hours:c.total, ln:c.ln, ot:c.ot, pay:c.pay })
+      totalHours += c.total; totalLN += c.ln; totalOT += c.ot; totalPay += c.pay; totalBreak += c.breakH
+      dayStats.push({ date, inT:ins[i].time, outT:outs[i].time, hours:c.total, ln:c.ln, ot:c.ot, pay:c.pay, breakH:c.breakH })
     }
   })
 
