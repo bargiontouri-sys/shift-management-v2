@@ -64,8 +64,8 @@ export default function AdminStats() {
               <div style={{height:3,background:'var(--bg3)',borderRadius:2,marginBottom:10,overflow:'hidden'}}>
                 <div style={{height:'100%',background:nameColor(s.staff.name),width:`${Math.round(s.totalWage/maxW*100)}%`,transition:'width 0.6s ease',borderRadius:2}}/>
               </div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:8}}>
-                {[['深夜時間',`${s.totalLNHours.toFixed(1)}h`,'var(--purple)'],['残業時間',`${s.totalOTHours.toFixed(1)}h`,'var(--red)'],['勤務日数',`${s.days.length}日`,'var(--tx2)']].map(([l,v,c])=>(
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr 1fr',gap:8}}>
+                {[['深夜時間',`${s.totalLNHours.toFixed(1)}h`,'var(--purple)'],['残業時間',`${s.totalOTHours.toFixed(1)}h`,'var(--red)'],['休憩時間',`${s.totalBreakHours.toFixed(1)}h`,'var(--tx3)'],['勤務日数',`${s.days.length}日`,'var(--tx2)']].map(([l,v,c])=>(
                   <div key={l} style={{background:'var(--bg3)',padding:'6px 8px',borderRadius:'var(--r)'}}>
                     <div style={{fontSize:7,color:'var(--tx3)',fontWeight:900,textTransform:'uppercase',letterSpacing:'0.08em',marginBottom:2}}>{l}</div>
                     <div style={{fontFamily:'var(--mono)',fontSize:11,fontWeight:700,color:c as string}}>{v}</div>
