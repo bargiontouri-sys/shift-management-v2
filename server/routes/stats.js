@@ -6,7 +6,9 @@ const router = Router(), db = new PrismaClient()
 function calcPay(staff, inT, outT) {
   const pt = t => { const [h,m]=t.split(':').map(Number); return h+m/60 }
   const s=pt(inT); let e=pt(outT); if(e<s) e+=24
-  const total=e-s, ot=Math.max(0,total-8), ln=Math.max(0,Math.min(e,29)-Math.max(s,22))
+  const raw=e-s
+  const breakH = raw>8?1:raw>6?0.75:0
+  const total=raw-breakH, ot=Math.max(0,total-8), ln=Math.max(0,Math.min(e,29)-Math.max(s,22))
   const bh=staff.type==='full-time'?staff.wage/(staff.standardMonthlyHours||160):staff.wage
   const base=staff.type==='part-time'?(total-ot)*bh:0
   const otP=staff.type==='part-time'?ot*bh*1.25:0
