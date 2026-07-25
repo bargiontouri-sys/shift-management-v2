@@ -154,7 +154,7 @@ export default function AdminShift() {
                 </td>
                 {days.map(d=>{const k=dateDk(d),sh=gs(s.id,k),w=gw(s.id,k),it=k===today,sel=k===selDay;return(
                   <td key={k} style={{padding:3,borderBottom:'1px solid var(--bd)',borderRight:'1px solid var(--bd)',textAlign:'center',background:sel?'rgba(240,192,64,0.04)':it?'rgba(255,255,255,0.02)':'transparent',position:'relative'}}>
-                    {sh&&sh.type!=='off'?<div style={{fontSize:7,fontFamily:'var(--mono)',fontWeight:700,padding:'2px',background:sh.type==='eve'?'rgba(176,140,255,0.15)':'rgba(0,232,122,0.12)',color:sh.type==='eve'?'var(--purple)':'var(--green)',borderRadius:'2px',lineHeight:1.4}}>{sh.start}<br/>{sh.end}</div>:<span style={{fontSize:7,color:'var(--tx3)',fontWeight:700}}>—</span>}
+                    {sh&&sh.type!=='off'?<div style={{fontSize:7,fontFamily:'var(--mono)',fontWeight:700,padding:'2px',background:'rgba(0,232,122,0.12)',color:'var(--green)',borderRadius:'2px',lineHeight:1.4}}>{sh.start}<br/>{sh.end}</div>:<span style={{fontSize:7,color:'var(--tx3)',fontWeight:700}}>—</span>}
                     {w?.status==='ok'&&(!sh||sh.type==='off')&&<div style={{position:'absolute',top:2,right:2,width:4,height:4,background:'var(--ac)',borderRadius:'50%'}}/>}
                   </td>
                 )})}
@@ -188,9 +188,9 @@ export default function AdminShift() {
                   </div>
                 </div>
                 <div style={{display:'flex',gap:5,alignItems:'center'}}>
-                  <select value={sh.type} onChange={e=>{const t=e.target.value;upd(s.id,selDay,t,t==='off'?'':'18:00',t==='off'?'':'24:00')}} style={{background:'var(--bg2)',border:'1px solid var(--bd2)',padding:'4px 6px',fontSize:9,color:'var(--tx)',fontWeight:700,outline:'none',borderRadius:'var(--r)'}}>
-                    <option value="off">OFF</option><option value="day">日勤</option><option value="eve">夜勤</option>
-                  </select>
+                  <button onClick={()=>{const t=sh.type==='off'?'day':'off';upd(s.id,selDay,t,t==='off'?'':'18:00',t==='off'?'':'24:00')}} style={{background:sh.type==='off'?'var(--bg2)':'rgba(0,232,122,0.12)',border:'1px solid var(--bd2)',padding:'4px 10px',fontSize:9,color:sh.type==='off'?'var(--tx)':'var(--green)',fontWeight:700,outline:'none',borderRadius:'var(--r)'}}>
+                    {sh.type==='off'?'OFF':'ON'}
+                  </button>
                   {sh.type!=='off'&&<>
                     <select value={sh.start} onChange={e=>upd(s.id,selDay,sh.type,e.target.value,sh.end)} style={{background:'var(--bg2)',border:'1px solid var(--bd2)',padding:'3px 5px',fontSize:9,color:'var(--tx)',fontFamily:'var(--mono)',outline:'none',borderRadius:'var(--r)'}}>
                       {TIME_OPTS.map(t=><option key={t}>{t}</option>)}

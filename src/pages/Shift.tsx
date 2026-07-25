@@ -59,7 +59,7 @@ export function Shift() {
                 {days.map(d=>{const k=dateDk(d),sh=gs(s.id,k),it=k===today;return(
                   <td key={k} style={{ padding:3, borderBottom:'1px solid var(--bd)', borderRight:'1px solid var(--bd)', textAlign:'center', background:it?'rgba(255,255,255,0.02)':'transparent' }}>
                     {sh&&sh.type!=='off'
-                      ?<div style={{ fontSize:7, fontFamily:'var(--mono)', fontWeight:700, padding:'2px', background:sh.type==='eve'?'rgba(176,140,255,0.15)':'rgba(0,232,122,0.12)', color:sh.type==='eve'?'var(--purple)':'var(--green)', borderRadius:'2px', lineHeight:1.4 }}>{sh.start}<br/>{sh.end}</div>
+                      ?<div style={{ fontSize:7, fontFamily:'var(--mono)', fontWeight:700, padding:'2px', background:'rgba(0,232,122,0.12)', color:'var(--green)', borderRadius:'2px', lineHeight:1.4 }}>{sh.start}<br/>{sh.end}</div>
                       :<span style={{ fontSize:7, color:'var(--tx3)', fontWeight:700 }}>—</span>}
                   </td>
                 )})}

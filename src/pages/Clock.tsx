@@ -145,7 +145,6 @@ export default function Clock() {
               <div style={{ fontFamily:'var(--mono)', fontSize:14, fontWeight:700, marginTop:1 }}>{todayShift.start} — {todayShift.end}</div>
             </div>
           </div>
-          <span style={{ fontSize:9, fontWeight:900, color:'var(--green)', background:'rgba(0,232,122,0.1)', padding:'3px 8px', borderRadius:'3px', border:'1px solid rgba(0,232,122,0.2)' }}>{todayShift.type==='eve'?'夜勤':'日勤'}</span>
         </div>
       )}
 
