@@ -156,6 +156,7 @@ export default function AdminShift() {
                   <td key={k} style={{padding:3,borderBottom:'1px solid var(--bd)',borderRight:'1px solid var(--bd)',textAlign:'center',background:sel?'rgba(240,192,64,0.04)':it?'rgba(255,255,255,0.02)':'transparent',position:'relative'}}>
                     {sh&&sh.type!=='off'?<div style={{fontSize:7,fontFamily:'var(--mono)',fontWeight:700,padding:'2px',background:'rgba(0,232,122,0.12)',color:'var(--green)',borderRadius:'2px',lineHeight:1.4}}>{sh.start}<br/>{sh.end}</div>:<span style={{fontSize:7,color:'var(--tx3)',fontWeight:700}}>—</span>}
                     {w?.status==='ok'&&(!sh||sh.type==='off')&&<div style={{position:'absolute',top:2,right:2,width:4,height:4,background:'var(--ac)',borderRadius:'50%'}}/>}
+                    {w?.status==='ng'&&<div style={{position:'absolute',top:2,right:2,width:4,height:4,background:'var(--red)',borderRadius:'50%'}}/>}
                   </td>
                 )})}
               </tr>
